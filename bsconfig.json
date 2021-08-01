@@ -1,5 +1,5 @@
 {
-  "name": "app-template-reason-react",
+  "name": "rescript-pulo-dev",
   "reason": { "react-jsx": 3 },
   "bsc-flags": ["-bs-super-errors"],
   "sources": [
@@ -11,8 +11,14 @@
   "package-specs": [{ "module": "es6", "in-source": true }],
   "suffix": ".bs.js",
   "namespace": true,
-  "bs-dependencies": ["@rescript/react"],
+  "bs-dependencies": [
+    "@rescript/react",
+    "rescript-chakra",
+    "rescript-recoil",
+    "decco",
+    "bs-fetch"
+  ],
   "bs-dev-dependencies": [],
-  "ppx-flags": [],
+  "ppx-flags": ["decco/ppx"],
   "refmt": 3
 }

@@ -5,10 +5,8 @@
 @scope(("import", "meta", "hot")) @val
 external accept: unit => unit = "accept"
 
-%%raw(`import './index.css';`)
-
 ReactDOM.render(
-  <React.StrictMode> <App /> </React.StrictMode>,
+  <React.StrictMode> <Provider> <App /> </Provider> </React.StrictMode>,
   ReactDOM.querySelector("#root")->Belt.Option.getExn,
 )
 
