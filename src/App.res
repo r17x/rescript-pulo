@@ -22,6 +22,7 @@ module Navbar = {
 
 module Card = {
   open Chakra
+
   @react.component
   let make = (~url, ~title, ~media, ~mediaColor as colorScheme, ~author as name, ~description) =>
     <LinkBox _as="article">
@@ -46,11 +47,12 @@ module Error = {
   open Chakra
   let renderWithCode = code =>
     <Text my=#eight> {`Error :( ~ Sedih (Code: ${code->Js.Int.toString})`->React.string} </Text>
+
   @react.component
   let make = (~error) => <>
     {Api.Error.render(
       error,
-      0->renderWithCode,
+      ~default=0->renderWithCode,
       ~decodeError=_ => 2->renderWithCode,
       ~jsError=_ => 3->renderWithCode,
       (),
@@ -60,21 +62,82 @@ module Error = {
 
 let renderError = error => <Error error />
 
+let isOptEqual = (currentMedia, media) =>
+  switch currentMedia {
+  | Some(currentMedia) => currentMedia == media
+  | None => false
+  }
+
+module Media = {
+  open Chakra
+
+  @react.component
+  let make = (~media, ~currentMedia, ~onClick as setMedia) => {
+    let isCurrentMedia = isOptEqual(currentMedia)
+    let handleClick = _ => setMedia(_ => media->isCurrentMedia ? None : Some(media))
+
+    <Button
+      textTransform=#uppercase
+      size=#sm
+      onClick={handleClick}
+      isActive={media->isCurrentMedia ? #true_ : #false_}
+      colorScheme={media->Api.Media.toColor}>
+      {media->Api.Media.mediaToJs->React.string}
+    </Button>
+  }
+}
+
+module Filter = {
+  open Chakra
+
+  @react.component
+  let make = () => {
+    let (page, setPage) = Recoil.useRecoilState(Api.currentPage)
+    let (currentMedia, onClick) = Api.useMedia()
+    let handlePrevious = _ => setPage(prev => prev <= 1 ? 1 : prev - 1)
+    let handleNext = _ => setPage(prev => prev + 1)
+    let renderMedia = media => <Media media currentMedia onClick />
+
+    <HStack
+      boxShadow=#var("--chakra-shadows-sm")
+      py=#eight
+      position=#sticky
+      zIndex=#sticky
+      bg=#white
+      bottom=#zero
+      top=#zero
+      left=#zero
+      right=#zero
+      justifyContent=#spaceBetween>
+      <Button
+        isDisabled={currentMedia->Belt.Option.isSome || page == 1 ? #true_ : #false_}
+        onClick={handlePrevious}>
+        {"Sebelumnya"->React.string}
+      </Button>
+      {Api.Media.media->Belt.List.map(renderMedia)->Belt.List.toArray->React.array}
+      <Button isDisabled={currentMedia->Belt.Option.isSome ? #true_ : #false_} onClick={handleNext}>
+        {"Selanjutnya"->React.string}
+      </Button>
+    </HStack>
+  }
+}
+
 module Content = {
   open Chakra
-  let toColor = media => media->Api.Media.lazyMap(#red, #green, #teal, #yellow)
+
+  let renderCard = (content: Api.Content.t) =>
+    <Card
+      title=content.title
+      description={content.body->Belt.Option.getWithDefault("---")}
+      media={content.media->Api.Media.mediaToJs}
+      mediaColor={content.media->Api.Media.toColor}
+      author=content.contributor
+      url=content.url
+    />
+
   @react.component
   let make = () => {
     let contents = Api.useContent()
-    let renderCard = (content: Api.Content.t) =>
-      <Card
-        title=content.title
-        description={content.body->Belt.Option.getWithDefault("---")}
-        media={content.media->Api.Media.mediaToJs}
-        mediaColor={content.media->toColor}
-        author=content.contributor
-        url=content.url
-      />
 
     <Container>
       <Stack spacing=#twelve>
@@ -84,12 +147,12 @@ module Content = {
   }
 }
 
+open Chakra
 @react.component
-let make = () => {
-  open Chakra
-  <>
-    <Navbar />
-    <VStack>
+let make = () => <>
+  <Navbar />
+  <VStack>
+    <Box minH=#vh(100.)>
       <Suspense
         error={renderError}
         loading={
@@ -98,6 +161,7 @@ let make = () => {
         }>
         <Content />
       </Suspense>
-    </VStack>
-  </>
-}
+    </Box>
+    <Filter />
+  </VStack>
+</>

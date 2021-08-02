@@ -12,8 +12,9 @@
 ## Fitur
 
 * [x] Daftar Artikel
-* [ ] _Filter_ dan Pencarian 
-* [ ] _Pagination_
+* [x] _Filter_
+* [x] _Pagination_
+* [ ] _Search_ 🤔
 
 ## Available Scripts
 
