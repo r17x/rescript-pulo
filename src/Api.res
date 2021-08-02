@@ -87,6 +87,12 @@ module Promise = {
 
 module Error = {
   exception DecodeError(Decco.decodeError)
+  let render = (error, default, ~decodeError=?, ~jsError=?, ()) =>
+    switch (error, decodeError, jsError) {
+    | (DecodeError(error), Some(decodeError), _) => decodeError(error)
+    | (Js.Exn.Error(error), _, Some(jsError)) => jsError(error)
+    | _ => default
+    }
 }
 
 let getContent = (~page) => {

@@ -42,6 +42,24 @@ module Card = {
     </LinkBox>
 }
 
+module Error = {
+  open Chakra
+  let renderWithCode = code =>
+    <Text my=#eight> {`Error :( ~ Sedih (Code: ${code->Js.Int.toString})`->React.string} </Text>
+  @react.component
+  let make = (~error) => <>
+    {Api.Error.render(
+      error,
+      0->renderWithCode,
+      ~decodeError=_ => 2->renderWithCode,
+      ~jsError=_ => 3->renderWithCode,
+      (),
+    )}
+  </>
+}
+
+let renderError = error => <Error error />
+
 module Content = {
   open Chakra
   let toColor = media => media->Api.Media.lazyMap(#red, #green, #teal, #yellow)
@@ -72,13 +90,14 @@ let make = () => {
   <>
     <Navbar />
     <VStack>
-      <React.Suspense
-        fallback={
+      <Suspense
+        error={renderError}
+        loading={
           // TODO: jika binding dari {rescript-chakra} tersedia {Skeleton} or {Spinner}, GUNAKAN!!
           <Badge mt=#two colorScheme=#teal> {"Loading..."->React.string} </Badge>
         }>
         <Content />
-      </React.Suspense>
+      </Suspense>
     </VStack>
   </>
 }
