@@ -19,15 +19,21 @@ module Media = {
     | #web
     | #tulisan
     | #podcast
+    | #tool
   ]
 
-  let lazyMap = (media, video, web, tulisan, podcast) =>
+  let media = list{#video, #web, #tulisan, #podcast, #tool}
+
+  let lazyMap = (media, video, web, tulisan, podcast, tool) =>
     switch media {
     | #video => video
     | #web => web
     | #tulisan => tulisan
     | #podcast => podcast
+    | #tool => tool
     }
+
+  let toColor = media => media->lazyMap(#red, #green, #teal, #yellow, #blue)
 
   let encoder = t => t->mediaToJs->Decco.stringToJson
 
@@ -38,6 +44,7 @@ module Media = {
     | Ok("web") => Ok(#web)
     | Ok("tulisan") => Ok(#tulisan)
     | Ok("podcast") => Ok(#podcast)
+    | Ok("tool") => Ok(#tool)
     | _ =>
       Decco.error(
         `[Media] Expected JSON type is {string} with valid value "video" | "web" | "tulisan" | "podcast" `,
@@ -87,7 +94,7 @@ module Promise = {
 
 module Error = {
   exception DecodeError(Decco.decodeError)
-  let render = (error, default, ~decodeError=?, ~jsError=?, ()) =>
+  let render = (error, ~default=React.null, ~decodeError=?, ~jsError=?, ()) =>
     switch (error, decodeError, jsError) {
     | (DecodeError(error), Some(decodeError), _) => decodeError(error)
     | (Js.Exn.Error(error), _, Some(jsError)) => jsError(error)
@@ -95,8 +102,9 @@ module Error = {
     }
 }
 
-let getContent = (~page) => {
-  let url = `https://api.pulo.dev/v1/contents?page=${page->Js.Int.toString}`
+let getContent = (~params) => {
+  let params = params->Js.Array2.map(((key, value)) => `${key}=${value}`)->Js.Array2.joinWith("&")
+  let url = `https://api.pulo.dev/v1/contents?${params}`
   url
   ->Fetch.fetch
   ->Promise.then_(Fetch.Response.json)
@@ -113,12 +121,35 @@ let currentPage = Recoil.atom({
   default: 1,
 })
 
+let filter: Recoil.readWrite<option<Media.media>> = Recoil.atom({
+  key: "filter",
+  default: None,
+})
+
 let content = Recoil.asyncSelector({
   key: "content",
   get: ({get}) => {
-    let page = currentPage->get
-    getContent(~page)
+    let params = switch filter->get {
+    | Some(filter) => [("media", filter->Media.mediaToJs)]
+    | None => [("page", currentPage->get->Js.Int.toString)]
+    }
+
+    getContent(~params)
   },
 })
 
 let useContent = () => Recoil.useRecoilValue(content)
+
+let useMedia = () => Recoil.useRecoilState(filter)
+
+let setPage = () => Recoil.useSetRecoilState(currentPage)
+
+let nextPage = () => {
+  let next = Recoil.useSetRecoilState(currentPage)
+  next(prev => prev + 1)
+}
+
+let prevPage = () => {
+  let next = Recoil.useSetRecoilState(currentPage)
+  next(prev => prev <= 1 ? 1 : prev - 1)
+}
